@@ -702,7 +702,7 @@ def city_search(city_name: str = None) -> str:
         """.format(filter=city_name)
     return pd.DataFrame(sgbdSQL.consultar_db(sql=sql), columns=["id"])["id"][0]
 
-
+# HERE  lista_researcher_full_name_db
 def lista_researcher_full_name_db(name, graduate_program_id, dep_id):
     filter_name = str()
     if name:
@@ -792,6 +792,116 @@ def lista_researcher_full_name_db(name, graduate_program_id, dep_id):
     data_frame = data_frame.merge(ufmg_researcher(), on="id", how="left")
 
     return data_frame.fillna("").to_dict(orient="records")
+# . . . . . . . . . . . . 
+
+
+
+# ●  incite_lista_researcher_full_name_db
+def incite_lista_researcher_full_name_db(_name, incite_id, _dep_id):
+
+    name = "" 
+    dep_id = ""
+    incite_program_id = incite_id
+    
+    filter_name = str()
+    if name:
+        name = name.replace(";", " ")
+        filter_name = f"AND unaccent(r.name) ILIKE unaccent('{name}%')"
+    
+    
+    filter_incite_program = str()
+    if incite_program_id:
+        filter_incite_program = f"""
+            AND r.id IN (
+                SELECT DISTINCT igr.researcher_id
+                FROM incite_graduate_program_researcher igr
+                WHERE igr.incite_graduate_program_id = '{incite_program_id}')
+            """
+    
+    filter_departament = str()
+    if dep_id:
+        filter_departament = f"""
+            AND r.id IN (
+                SELECT researcher_id
+                FROM public.departament_researcher
+                WHERE dep_id = '{dep_id}'
+            )
+            """
+    
+    script_sql = f"""
+        SELECT
+            r.id AS id,
+            r.name AS researcher_name,
+            r.lattes_id AS lattes,
+            0 as among,
+            rp.articles AS articles,
+            rp.book_chapters AS book_chapters,
+            rp.book AS book,
+            rp.patent AS patent,
+            rp.software AS software,
+            rp.brand AS brand,
+            i.name AS university,
+            r.abstract AS abstract,
+            UPPER(REPLACE(LOWER(TRIM(rp.great_area)), '_', ' ')) AS area,
+            rp.city AS city,
+            r.orcid AS orcid,
+            i.image AS image_university,
+            r.graduation AS graduation,
+            to_char(r.last_update,'dd/mm/yyyy') AS lattes_update
+        FROM
+            researcher r
+            LEFT JOIN city c ON c.id = r.city_id
+            LEFT JOIN institution i ON r.institution_id = i.id
+            LEFT JOIN researcher_production rp ON r.id = rp.researcher_id
+        WHERE
+            1 = 1
+            {filter_name}
+            {filter_incite_program}
+            {filter_departament};
+            """
+    registry = sgbdSQL.consultar_db(script_sql)
+    
+    
+    
+    data_frame = pd.DataFrame(
+        registry,
+        columns=[
+            "id",
+            "name",
+            "lattes_id",
+            "among",
+            "articles",
+            "book_chapters",
+            "book",
+            "patent",
+            "software",
+            "brand",
+            "university",
+            "abstract",
+            "area",
+            "city",
+            "orcid",
+            "image_university",
+            "graduation",
+            "lattes_update",
+        ],
+    )
+    
+    
+    data_frame = data_frame.merge(researcher_graduate_program_db(), on="id", how="left")
+    data_frame = data_frame.merge(researcher_research_group_db(), on="id", how="left")
+    data_frame = data_frame.merge(researcher_openAlex_db(), on="id", how="left")
+    data_frame = data_frame.merge(researcher_foment_db(), on="id", how="left")
+    data_frame = data_frame.merge(researcher_departament(), on="id", how="left")
+    data_frame = data_frame.merge(ufmg_researcher(), on="id", how="left")
+    
+    return data_frame.fillna("").to_dict(orient="records")
+
+# . . . . . . . . . . . . 
+
+
+
+
 
 
 def lista_researcher_book_db(text, institution, graduate_program_id, book_type):

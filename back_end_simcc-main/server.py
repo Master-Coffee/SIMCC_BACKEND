@@ -141,6 +141,7 @@ def researcher_image():
     return jsonify(list_iamge), 200
 
 
+# HERE /researcherName
 @app.route("/researcherName", methods=["GET"])
 def researcherName():
     name = request.args.get("name")
@@ -150,6 +151,20 @@ def researcherName():
         name, graduate_program_id, dep_id
     )
     return jsonify(list_researcher), HTTPStatus.OK
+# . . . . . . . . . . . . 
+
+
+# ★ /inciteResearcherName
+@app.route("/inciteResearcherName", methods=["GET"])
+def inciteResearcherName():
+    name = request.args.get("name")
+    incite_program_id = request.args.get("incite_program_id")
+    dep_id = request.args.get("dep_id")
+    list_researcher = Dao.areaFlowSQL.incite_lista_researcher_full_name_db(
+        name, incite_program_id, dep_id
+    )
+    return jsonify(list_researcher), HTTPStatus.OK
+# . . . . . . . . . . . . 
 
 
 @app.route("/total", methods=["GET"])
